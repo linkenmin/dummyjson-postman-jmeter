@@ -1,0 +1,14 @@
+# Results and reports
+reports/
+results/
+*.xml
+*.html
+*.jtl
+*.csv
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Shell scripts
+*.sh

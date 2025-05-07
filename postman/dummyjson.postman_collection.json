@@ -1,0 +1,357 @@
+{
+	"info": {
+		"_postman_id": "7b680759-0e69-4a32-9b4c-528027e415e7",
+		"name": "dummyjson",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "28553744"
+	},
+	"item": [
+		{
+			"name": "GET /users",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"GET /users -> status is 200\", () => {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"GET /users -> response is valid JSON with users array\", () => {",
+							"    pm.response.to.be.json;",
+							"    let body = pm.response.json();",
+							"    pm.expect(body).to.have.property(\"users\").that.is.an(\"array\");",
+							"    pm.expect(body.users.length).to.be.above(0);",
+							"});",
+							"",
+							"let users = pm.response.json().users;",
+							"let credentials = users.map(u => ({",
+							"    username: u.username,",
+							"    password: u.password",
+							"}));",
+							"",
+							"if (pm.response.code === 200) {",
+							"    const response = pm.response.json();",
+							"    console.log(\"response =\", response);",
+							"    pm.collectionVariables.set(\"user_credentials\", JSON.stringify(credentials));",
+							"    pm.execution.setNextRequest(\"POST /auth/login\")",
+							"} else {",
+							"    console.warn(\"GET users failed\");",
+							"    pm.execution.setNextRequest(null);",
+							"}"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.collectionVariables.set(\"access_token\", \"\");",
+							"pm.collectionVariables.set(\"current_index\", 0);",
+							"pm.collectionVariables.set(\"refresh_token\", \"\");",
+							"pm.collectionVariables.set(\"user_credentials\", []);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/users",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST /auth/login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"POST /auth/login -> status is 200\", () => {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"POST /auth/login -> response has accessToken and refreshToken\", () => {",
+							"    let body = pm.response.json();",
+							"    pm.expect(body).to.have.property(\"accessToken\").that.is.a(\"string\");",
+							"    pm.expect(body).to.have.property(\"refreshToken\").that.is.a(\"string\");",
+							"});",
+							"",
+							"if (pm.response.code === 200) {",
+							"    const response = pm.response.json();",
+							"    console.log(\"response =\", response);",
+							"    pm.collectionVariables.set(\"access_token\", response.accessToken);",
+							"    pm.collectionVariables.set(\"refresh_token\", response.refreshToken);",
+							"} else {",
+							"    console.warn(\"POST /auth/login failed\");",
+							"}",
+							"",
+							"pm.execution.setNextRequest(\"GET /auth/me\");"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"let credentials = JSON.parse(pm.collectionVariables.get(\"user_credentials\"));",
+							"let index = parseInt(pm.collectionVariables.get(\"current_index\"));",
+							"",
+							"let user = credentials[index];",
+							"pm.request.body.update({",
+							"  mode: 'raw',",
+							"  raw: JSON.stringify(user),",
+							"});",
+							"",
+							"console.log(\"index =\", index);",
+							"console.log(\"user =\", user);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET /auth/me",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"GET /auth/me -> status is 200\", () => {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"GET /auth/me -> response has id, username, email\", () => {",
+							"    let body = pm.response.json();",
+							"    pm.expect(body).to.have.property(\"id\").that.is.a(\"number\");",
+							"    pm.expect(body).to.have.property(\"username\").that.is.a(\"string\");",
+							"    pm.expect(body).to.have.property(\"email\").that.matches(/@/);",
+							"});",
+							"",
+							"if (pm.response.code === 200) {",
+							"    const response = pm.response.json();",
+							"    console.log(\"response =\", response);",
+							"} else {",
+							"    console.warn(\"GET /auth/me failed\");",
+							"}",
+							"",
+							"pm.execution.setNextRequest(\"POST /auth/refresh\");"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{access_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/auth/me",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"me"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST /auth/refresh",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"POST /auth/refresh -> status is 200\", () => {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"POST /auth/refresh -> response has accessToken and refreshToken\", () => {",
+							"    let body = pm.response.json();",
+							"    pm.expect(body).to.have.property(\"accessToken\").that.is.a(\"string\");",
+							"    pm.expect(body).to.have.property(\"refreshToken\").that.is.a(\"string\");",
+							"});",
+							"",
+							"if (pm.response.code === 200) {",
+							"    const response = pm.response.json();",
+							"    console.log(\"response =\", response);",
+							"} else {",
+							"    console.warn(\"POST /auth/refresh failed\");",
+							"}",
+							"",
+							"let credentials = JSON.parse(pm.collectionVariables.get(\"user_credentials\"));",
+							"let index = parseInt(pm.collectionVariables.get(\"current_index\"));",
+							"",
+							"if (index + 1 < credentials.length) {",
+							"    pm.collectionVariables.set(\"current_index\", index + 1);",
+							"    pm.execution.setNextRequest(\"POST /auth/login\");",
+							"} else {",
+							"    pm.execution.setNextRequest(null);",
+							"}"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"let refresh_token = pm.collectionVariables.get(\"refresh_token\")",
+							"pm.request.body.update({",
+							"  mode: 'raw',",
+							"  raw: JSON.stringify({ refreshToken: refresh_token, expiresInMins: 30 }),",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/refresh",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"refresh"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "base_url",
+			"value": "https://dummyjson.com",
+			"type": "string"
+		},
+		{
+			"key": "user_credentials",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "current_index",
+			"value": "0",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": ""
+		}
+	]
+}
